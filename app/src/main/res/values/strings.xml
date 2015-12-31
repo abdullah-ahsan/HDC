@@ -25,5 +25,6 @@
 
     <string name="btQuery">s</string>
     <string name="title_activity_graph">Data History</string>
+    <string name="bluetooth_disabled_error">Bluetooth is disabled.</string>
 
 </resources>

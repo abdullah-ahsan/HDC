@@ -84,6 +84,7 @@ public class HomeScreen extends AppCompatActivity {
     private void startDataActivity()
     {
         Intent intent = new Intent(this, DataActivity.class);
+        intent.putExtra(getString(R.string.device_name_tag), deviceName);
         startActivity(intent);
     }
 

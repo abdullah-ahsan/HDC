@@ -58,25 +58,17 @@ public class DataActivity extends AppCompatActivity {
         httpClient = new AsyncHttpClient();
 
         //connect to the bluetooth device
-        deviceName = intent.getStringExtra("DeviceName");
+        deviceName = intent.getStringExtra(getString(R.string.device_name_tag));
 
-        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        if(!bluetoothAdapter.isEnabled())
-        {
-            //enable the bluetooth
-            Intent enableBT = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableBT, REQUEST_ENABLE_BT);
-            status.setText("Enabling Bluetooth...");
-        }
+        Log.i(TAG, "Device Name: (" + deviceName + "), length: " + deviceName.length());
 
         //initiate the different views
         status = (TextView) findViewById(R.id.tv_status);
         status.setText("Connecting to BT device...");
         tv_humidity = (TextView) findViewById(R.id.tv_humidity);
-        tv_humidity.setText("33%");
+        tv_humidity.setText("N/A");
         tv_temp = (TextView) findViewById(R.id.tv_temp);
-        tv_temp.setText("15°C");
-
+        tv_temp.setText("N/A");
 
         btRefreshButton = (ImageButton)findViewById(R.id.btRefreshFab);
         btRefreshButton.setOnClickListener(new View.OnClickListener() {
@@ -112,24 +104,42 @@ public class DataActivity extends AppCompatActivity {
                 startActivity(intent1);
             }
         });
+
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if(!bluetoothAdapter.isEnabled())
+        {
+            //enable the bluetooth
+            Intent enableBT = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableBT, REQUEST_ENABLE_BT);
+            status.setText("Enabling Bluetooth...");
+        }
+        else
+        {
+            initBluetooth();
+            connectService(deviceName);
+        }
     }
 
     public void connectService(String deviceName){
-        try {
-            BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-            if (bluetoothAdapter.isEnabled()) {
-                bluetooth.start();
-                bluetooth.connectDevice(deviceName);
-                Log.d(TAG, "connectService: Btservice started - listening");
-                //status.setText("Connected to " + deviceName);
-                //Toast.makeText(DataActivity.this, "Connected to " + deviceName, Toast.LENGTH_SHORT).show();
-            } else {
-                Log.d(TAG, "connectService: Btservice started - bluetooth is not enabled");
+        if(bluetooth != null)
+        {
+            try {
+                BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+                if (bluetoothAdapter.isEnabled()) {
+                    bluetooth.start();
+                    bluetooth.connectDevice(deviceName);
+                    Log.d(TAG, "connectService: Btservice started - listening");
+                } else {
+                    Log.d(TAG, "connectService: Btservice started - bluetooth is not enabled");
+                }
+            } catch(Exception e){
+                Log.e(TAG, "Unable to start bt ", e);
+                Toast.makeText(DataActivity.this, "connectService: Unable to start bt service with " + deviceName, Toast.LENGTH_SHORT).show();
             }
-        } catch(Exception e){
-            Log.e(TAG, "Unable to start bt ", e);
-            Toast.makeText(DataActivity.this, "connectService: Unable to start bt service with " + deviceName, Toast.LENGTH_SHORT).show();
         }
+        else
+            status.setText(getString(R.string.bluetooth_disabled_error));
+
     }
 
     //bluetooth message handler
@@ -138,17 +148,17 @@ public class DataActivity extends AppCompatActivity {
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case Bluetooth.MESSAGE_STATE_CHANGE:
-                    //Log.d(TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1);
+                    Log.d(TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1);
                     break;
                 case Bluetooth.MESSAGE_WRITE:
                 {
-                    //Log.d(TAG, "MESSAGE_WRITE ");
+                    Log.d(TAG, "MESSAGE_WRITE ");
                     //Toast.makeText(DataActivity.this, "Message Write", Toast.LENGTH_SHORT).show();
                     break;
                 }
                 case Bluetooth.MESSAGE_READ:
                 {
-                    //Log.d(TAG, "MESSAGE_READ ");
+                    Log.d(TAG, "MESSAGE_READ ");
                     //Toast.makeText(DataActivity.this, "Message Read", Toast.LENGTH_SHORT).show();
 
                     gotBtData(msg.obj, msg.arg1);
@@ -156,32 +166,33 @@ public class DataActivity extends AppCompatActivity {
                 }
 
                 case Bluetooth.MESSAGE_DEVICE_NAME:
-                    //Log.d(TAG, "MESSAGE_DEVICE_NAME "+msg);
+                    Log.d(TAG, "MESSAGE_DEVICE_NAME "+msg);
                     status.setText("Connected to: " + deviceName);
                     btConnected = true;
                     break;
                 case Bluetooth.MESSAGE_TOAST:
-                    //Log.d(TAG, "MESSAGE_TOAST "+msg);
+                    Log.d(TAG, "MESSAGE_TOAST "+msg);
                     break;
             }
-
-            //String msgText = msg.getData().toString();
-            //status.setText(msgText);
-            //status.setText(msg.obj.toString());
         }
     };
 
     private void getBtData()
     {
-        if(btConnected)
+        if(bluetooth != null)
         {
-            //send a data query to the bluetooth device
-            String btQuery = getResources().getString(R.string.btQuery);
-            bluetooth.sendMessage(btQuery);
-            status.setText("BT query sent.");
+            if(btConnected)
+            {
+                //send a data query to the bluetooth device
+                String btQuery = getResources().getString(R.string.btQuery);
+                bluetooth.sendMessage(btQuery);
+                status.setText("BT query sent.");
+            }
+            else
+                status.setText("BT device not connected yet.");
         }
         else
-            status.setText("BT device not connected yet.");
+            status.setText(getString(R.string.bluetooth_disabled_error));
 
     }
 
@@ -233,10 +244,6 @@ public class DataActivity extends AppCompatActivity {
             firstDataGot = true;
     }
 
-
-    //draw points to the two graphview
-
-
     private void postCloudData(float humidity, float temperature, long timeStamp)
     {
         if(!firstDataGot)   //no data to post
@@ -280,11 +287,24 @@ public class DataActivity extends AppCompatActivity {
         //if this result is for the enable bluetooth request
         if(requestCode == REQUEST_ENABLE_BT)
         {
-            Log.i(TAG, "Bluetooth activated");
-            bluetooth = new Bluetooth(this, mHandler);
-            connectService(deviceName);
-            status.setText("Bluetooth enabled.");
+            if(resultCode == RESULT_OK)
+            {
+                initBluetooth();
+                connectService(deviceName);
+            }
+            else
+            {
+                status.setText("Bluetooth disabled.");
+                bluetooth = null;
+            }
+
         }
     }
 
+    private void initBluetooth()
+    {
+        Log.i(TAG, "Enabling bluetooth.");
+        bluetooth = new Bluetooth(this, mHandler);
+        status.setText("Bluetooth enabled.");
+    }
 }
