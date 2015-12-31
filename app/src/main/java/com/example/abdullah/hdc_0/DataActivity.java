@@ -51,12 +51,12 @@ public class DataActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_data);
 
-        //getting the intent
-        Intent intent = getIntent();
 
         //initialize the httpCient
         httpClient = new AsyncHttpClient();
 
+        //getting the intent
+        Intent intent = getIntent();
         //connect to the bluetooth device
         deviceName = intent.getStringExtra(getString(R.string.device_name_tag));
 
@@ -101,6 +101,8 @@ public class DataActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent intent1 = new Intent(DataActivity.this, GraphActivity.class);
+                //give this name back to this activity when coming back
+                intent1.putExtra(getString(R.string.device_name_tag), deviceName);
                 startActivity(intent1);
             }
         });

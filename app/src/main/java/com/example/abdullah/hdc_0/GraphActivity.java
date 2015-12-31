@@ -1,5 +1,6 @@
 package com.example.abdullah.hdc_0;
 
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -31,6 +32,7 @@ public class GraphActivity extends AppCompatActivity {
     private GraphView tempGraph, humidityGraph;
     private TextView tv_time_range;
     private AsyncHttpClient httpClient;
+    private String deviceNameToReturn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +57,8 @@ public class GraphActivity extends AppCompatActivity {
 
         tv_time_range = (TextView)findViewById(R.id.tv_time_range);
         tv_time_range.setText("Time Range: N/A");
+
+        deviceNameToReturn = getIntent().getStringExtra(getString(R.string.device_name_tag));
     }
     private void drawGraphs(JSONArray jsonArray)
     {
@@ -131,6 +135,24 @@ public class GraphActivity extends AppCompatActivity {
         //status.setText("Received data from cloud.");
         Toast.makeText(this, "Data received from Cloud", Toast.LENGTH_SHORT).show();
         drawGraphs(jsonArray);
+    }
+
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                // do something useful
+                //Toast.makeText(this, "You pressed the up button!", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(this, DataActivity.class);
+                intent.putExtra(getString(R.string.device_name_tag), deviceNameToReturn);
+                startActivity(intent);
+                finish();
+
+                return(true);
+        }
+
+        return(super.onOptionsItemSelected(item));
     }
 
 }
