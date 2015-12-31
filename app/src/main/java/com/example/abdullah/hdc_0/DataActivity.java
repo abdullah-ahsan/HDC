@@ -40,7 +40,7 @@ public class DataActivity extends AppCompatActivity {
     private Bluetooth bluetooth;
     private TextView status, tv_temp, tv_humidity;
     private ImageButton btRefreshButton, cloudUploadButton, historyButton;
-    private boolean btConnected = false, firstDataGot = false;
+    private boolean btConnected = false;
     private static int REQUEST_ENABLE_BT = 111;
     private AsyncHttpClient httpClient;
 
@@ -66,9 +66,9 @@ public class DataActivity extends AppCompatActivity {
         status = (TextView) findViewById(R.id.tv_status);
         status.setText("Connecting to BT device...");
         tv_humidity = (TextView) findViewById(R.id.tv_humidity);
-        tv_humidity.setText("N/A");
+        tv_humidity.setText(getString(R.string.def_temp_humid));
         tv_temp = (TextView) findViewById(R.id.tv_temp);
-        tv_temp.setText("N/A");
+        tv_temp.setText(getString(R.string.def_temp_humid));
 
         btRefreshButton = (ImageButton)findViewById(R.id.btRefreshFab);
         btRefreshButton.setOnClickListener(new View.OnClickListener() {
@@ -200,7 +200,6 @@ public class DataActivity extends AppCompatActivity {
 
     private void gotBtData(Object wholeByteArray, int noOfBytes)
     {
-        boolean firstDataGot_temp = false, firstDataGot_humidity = false;
         //Toast.makeText(this, "Data received from Bluetooth", Toast.LENGTH_SHORT).show();
         status.setText("Received data from BT device.");
         byte[] byteArray = Arrays.copyOfRange((byte[]) wholeByteArray, 0, noOfBytes);
@@ -211,14 +210,17 @@ public class DataActivity extends AppCompatActivity {
         //!(tempFloat)!  -250ms Delay-    @{humidityFloat}@
 
         //if this condition is true, the temperature data is intact
-        if(str.indexOf('(')!=-1 && str.indexOf(')')!=-1)
+        if(str.indexOf('(')!=-1 && str.substring(str.indexOf('(')+1).length()>=2)
         {
-            String tempString = str.substring(str.indexOf('(')+1 ,str.indexOf(')'));
+            String tempString = str.substring(str.indexOf('(')+1);
+
+            if(tempString.indexOf(')')!=-1)
+                tempString = tempString.substring(0 ,tempString.indexOf(')'));
+
             try{
                     currentTemp = Float.parseFloat(tempString);
-                    tv_temp.setText("" + currentTemp);
-                    Log.d(TAG, "Got the temperature: " + currentTemp);
-                    firstDataGot_temp = true;
+                    tv_temp.setText(currentTemp + " °C");
+                    Log.e(TAG, "Got the temperature: " + currentTemp);
             }
             catch (Exception e)
             {
@@ -227,30 +229,31 @@ public class DataActivity extends AppCompatActivity {
         }
 
         //if this condition is true, the humidity data is intact
-        if(str.indexOf('{')!=-1 && str.indexOf('}')!=-1)
+        //if(str.indexOf('{') !=-1 && str.indexOf('}') !=-1)
+        if(str.indexOf('{') !=-1 && str.substring(str.indexOf('{')+1).length()>=2)
         {
-            String humidString = str.substring(str.indexOf('{')+1 ,str.indexOf('}'));
+            String humidString = str.substring(str.indexOf('{')+1);
+
+            if(humidString.indexOf('}') != -1)
+                humidString = humidString.substring(0 ,humidString.indexOf('}'));
+
             try{
                 currentHumidity = Float.parseFloat(humidString);
-                tv_humidity.setText("" + currentHumidity);
-                Log.d(TAG, "Got the humidity: " + currentHumidity);
-                firstDataGot_humidity = true;
+                tv_humidity.setText(currentHumidity + " %");
+                Log.e(TAG, "Got the humidity: " + currentHumidity);
             }
             catch (Exception e)
             {
                 Log.e(TAG, "Couldnt Parse float from humidity string: " + humidString);
             }
         }
-
-        if(firstDataGot_temp && firstDataGot_humidity)
-            firstDataGot = true;
     }
 
     private void postCloudData(float humidity, float temperature, long timeStamp)
     {
-        if(!firstDataGot)   //no data to post
+        if(tv_humidity.getText().equals(getString(R.string.def_temp_humid)) && tv_temp.getText().equals(getString(R.string.def_temp_humid)))   //no data to post
         {
-            Toast.makeText(this, "No data to Post", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(this, "No data to Post", Toast.LENGTH_SHORT).show();
             status.setText("No data to post.");
             return;
         }
@@ -270,7 +273,7 @@ public class DataActivity extends AppCompatActivity {
             @Override
             public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
                 status.setText("Data upload failure.");
-                Toast.makeText(DataActivity.this, "Data post failure", Toast.LENGTH_SHORT).show();
+                Toast.makeText(DataActivity.this, "Data post failed", Toast.LENGTH_SHORT).show();
             }
         });
     }

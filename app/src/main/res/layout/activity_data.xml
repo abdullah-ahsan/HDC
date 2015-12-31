@@ -75,7 +75,7 @@
         android:text="Humidity:"
         android:id="@+id/tv_humidity_tag"
         android:layout_below="@+id/tv_temp"
-        android:layout_toStartOf="@+id/cloudUploadFab"
+        android:layout_centerHorizontal="true"
         android:layout_marginTop="83dp" />
 
     <TextView
